@@ -1,5 +1,6 @@
 import 'dotenv/config'
-import express, { type Application, type Request, type Response } from 'express'
+import express, { type Application } from 'express'
+import storageRouter from './routes/storage.js'
 
 
 export class Server {
@@ -13,9 +14,7 @@ export class Server {
     private configure() {
         this.app.use(express.json())
 
-        this.app.get('/ping', (req: Request, res: Response) => {
-            res.status(200).send('pong');
-        })
+        this.app.use('/storage', storageRouter)
     }
 
     public start() {

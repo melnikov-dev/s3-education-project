@@ -20,7 +20,6 @@ router.post('/', upload.single('file'), async (req, res) => {
     await controller.upload(req, res)
 })
 
-// 
 router.get('/download', async (req, res) => {
     await controller.download(req, res)
 })

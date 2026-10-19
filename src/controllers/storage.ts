@@ -13,10 +13,33 @@ export class StorageController {
             }
             // в S3 передается уже buffer целиком, не потоком
             const uploadedFile = await this.storageService.upload(file)
-            console.log(file)
             res.status(200).json(uploadedFile)
         } catch (error) {
             res.status(500).json({ error: 'Failed to upload file' })
+        }
+    }
+
+    public async createUploadUrl(req: Request, res: Response) {
+        try {
+            const { fileName, contentType } = req.body as {
+                fileName?: unknown
+                contentType?: unknown
+            }
+
+            // предполагается, что валидация на стороне фронта будет и сюда уже будет приходить правильное имя и content-type
+            if (
+                typeof fileName !== 'string' || !fileName.trim() ||
+                typeof contentType !== 'string' || !contentType.trim()
+            ) {
+                return res.status(400).json({
+                    error: 'fileName and contentType must be non-empty strings',
+                })
+            }
+
+            const upload = await this.storageService.createUploadUrl(fileName, contentType)
+            res.status(200).json(upload)
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to create upload URL' })
         }
     }
 

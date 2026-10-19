@@ -16,8 +16,13 @@ const controller = new StorageController()
 // Подключение multer к потоку запроса, разбор multipart/form-data, собирает файл из поля file
 // собирает по чанкам и объединяет в buffer, когда файл полностью получен
 // Создает объект в req.file и дальше buffer в S3 передает
-router.post('/', upload.single('file'), async (req, res) => {
+router.post('/upload', upload.single('file'), async (req, res) => {
     await controller.upload(req, res)
+})
+
+// Загрузка в S3 напрямую по предварительной ссылке
+router.post('/upload-url', async (req, res) => {
+    await controller.createUploadUrl(req, res)
 })
 
 router.get('/download', async (req, res) => {

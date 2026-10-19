@@ -1,7 +1,10 @@
 import 'dotenv/config'
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { extname } from 'node:path';
 import { randomUUID } from 'node:crypto'
+
+const DIRECT_UPLOAD_URL_EXPIRES_IN_SECONDS = 300
 
 export class StorageService {
     private readonly client: S3Client
@@ -38,6 +41,41 @@ export class StorageService {
         } catch (error) {
             console.error('Error uploading file to S3:', error)
             throw new Error('Failed to upload file')
+        }
+    }
+
+    public async createUploadUrl(fileName: string, contentType: string) {
+        const extension = extname(fileName)
+        const key = `uploads/${randomUUID()}${extension}`
+        const command = new PutObjectCommand({
+            Bucket: this.bucket,
+            Key: key,
+            ContentType: contentType,
+            Metadata: {
+                originalname: fileName
+            }
+        })
+
+        try {
+            const uploadUrl = await getSignedUrl(this.client, command, {
+                expiresIn: DIRECT_UPLOAD_URL_EXPIRES_IN_SECONDS,
+                // Включаем Content-Type в подпись, чтобы клиент при загрузке
+                // передал тот же MIME-тип, который был указан при создании URL.
+                signableHeaders: new Set(['content-type']),
+                // Оставляем метаданные оригинального имени файла отдельным
+                // HTTP-заголовком x-amz-meta-originalname при загрузке в S3.
+                // Данные будут лежать в Metadata.originalname и мы на них смотрим в download методе
+                unhoistableHeaders: new Set(['x-amz-meta-originalname']),
+            })
+
+            return {
+                key,
+                uploadUrl,
+                expiresIn: DIRECT_UPLOAD_URL_EXPIRES_IN_SECONDS,
+            }
+        } catch (error) {
+            console.error('Error creating upload URL for S3:', error)
+            throw new Error('Failed to create upload URL')
         }
     }
 
